@@ -17,7 +17,7 @@ RUN --mount=type=cache,sharing=locked,target=/var/cache/apt --mount=type=cache,s
     git \
     python3-pip \
     ros-$ROS_DISTRO-gazebo-ros-pkgs \
-    ros-$ROS_DISTRO-ros-gz-bridge \
+    ros-$ROS_DISTRO-ros-ign-bridge \
     ros-$ROS_DISTRO-gazebo-ros2-control \
     ros-$ROS_DISTRO-joint-state-publisher \
     ros-$ROS_DISTRO-tf-transformations \
@@ -28,7 +28,6 @@ RUN --mount=type=cache,sharing=locked,target=/var/cache/apt --mount=type=cache,s
     ros-$ROS_DISTRO-rqt-graph \
     ros-$ROS_DISTRO-rviz2 \
     ros-$ROS_DISTRO-xacro \
-    ros-$ROS_DISTRO-domain-bridge \
     sudo \
     xterm
 
@@ -36,22 +35,15 @@ RUN --mount=type=cache,sharing=locked,target=/var/cache/apt --mount=type=cache,s
 RUN pip3 install \
     casadi \
     matplotlib \
-    numpy==1.26.4 \
-    osqp \
+    numpy \
     pandas \
     pre-commit \
     progressbar2 \
-    proxsuite \
     qpsolvers \
     quadprog \
     ruff \
     scipy \
-    sympy \
     transforms3d \
-    --upgrade
-
-RUN pip3 install \
-    pyplotjuggler \
     --upgrade
 
 ARG TORCH=0

@@ -7,8 +7,8 @@ cd "$(dirname "$(dirname "$(realpath "${BASH_SOURCE[0]}")")")"
 
 # TODO: Change these values to use different versions of ROS or different base images. The rest of the script should be left unchanged.
 BASE_IMAGE=osrf/ros
-BASE_TAG=humble-desktop
-IMAGE_NAME=humble_limo
+BASE_TAG=foxy-desktop
+IMAGE_NAME=foxy_limo
 
 # =============================== Preliminaries ============================== #
 

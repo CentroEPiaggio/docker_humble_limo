@@ -1,4 +1,4 @@
-# ROS2 Humble with limo repo for simulation installed
+# ROS2 Foxy with limo repo for simulation 
 ## Overview
 
 Docker container for the [limo simulation environment](https://github.com/agilexrobotics/limo_ros2/tree/humble) repo.
@@ -21,7 +21,7 @@ This will allow you to run Docker without `sudo`.
 
 Build the docker image with
 ```shell
-./build.bash [-a] [-f] [-h] [-r]
+./docker/build.bash [-a] [-f] [-h] [-r]
 ```
 Where the optional arguments represent:
 - `-a` or `--all`: build the image with all the dependencies
@@ -32,7 +32,7 @@ Where the optional arguments represent:
 
 Run the container with
 ```shell
-./run.bash
+./docker/run.bash
 ```
 
 This repo also supports VS Code devcontainers.

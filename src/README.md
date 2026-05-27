@@ -3,25 +3,22 @@ ROS 2 packages to implement generic ros2-controllers based with limo simulation.
 
 ## Table of Contents
 
-- [Limo series - Gazebo simulation](#)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Installation](#installation)
-  - [Usage](#usage)
-    - [With ROS](#with-ros-2)
-  - [Development](#development)
-    - [Pre-Commit](#pre-commit)
-    - [Tests](#tests)
-  - [Known Bugs](#known-bugs)
-  - [Author](#author)
+- [Table of Contents](#table-of-contents)
+- [Overview](#overview)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [First time](#first-time)
+  - [develop](#develop)
+  - [Scripts](#scripts)
+    - [Examples](#examples)
+- [Author](#author)
 
 ## Overview
 
 ## Installation
 
-These packages have been tested with ROS 2 Humble and ROS 2 Iron on an Ubuntu system.
+These packages have been tested with ROS 2 Foxy on an Ubuntu system.
 
-To use Torch with an NVIDIA graphics card, it is necessary to install the NVIDIA drivers for Ubuntu. [Here](https://letmegooglethat.com/?q=Install+nvidia+drivers+ubuntu).
 
 ## Usage
 ### First time 
@@ -59,9 +56,9 @@ source install/setup.bash
 
 #### Examples
 ```shell
-ros2 launch limo_simulation gazebo_models_diff.launch.py
+ros2 launch limo_simulation gazebo_models_diff.launch.py n_robots:=<put you number>
 ```
-this will spawn n robots depending on the position passed in the launch file. Robot are differential drive
+this will spawn n robots depending on the argument. Robot are differential drive
 Then you can develop your own algorithm and test it in gazebo.
 Inside src folder, there is a simple diff_drive_publisher BUT be carefull to adjust the namespacing if you are spawning more robots
 
