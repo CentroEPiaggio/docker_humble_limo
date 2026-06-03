@@ -100,7 +100,7 @@ def generate_launch_description():
                 '-robot_namespace',
                 robot_name,
                 '-entity',
-                f'/{robot_name}',
+                f'{robot_name}',
                 '-x',
                 str(P[i][0]),
                 '-y',

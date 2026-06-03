@@ -9,9 +9,9 @@
     <xacro:limo_wheel_transmission wheel_prefix="rear_left" />
     <xacro:limo_wheel_transmission wheel_prefix="rear_right" />
     <!-- Controller configurations -->
-    <!--<xacro:gazebo_laser frame_prefix="laser" />
-    <xacro:gazebo_depth_camera frame_prefix="depth_camera" />-->
-    <xacro:gazebo_imu frame_prefix="imu" /> 
+    <!--<xacro:gazebo_laser frame_prefix="laser" />-->
+    <xacro:gazebo_depth_camera frame_prefix="$(arg robot_name)/depth_camera" />
+    <xacro:gazebo_imu frame_prefix="$(arg robot_name)/imu" /> 
     <ros2_control name="GazeboSystem" type="system">
         <hardware>
             <plugin>gazebo_ros2_control/GazeboSystem</plugin>
