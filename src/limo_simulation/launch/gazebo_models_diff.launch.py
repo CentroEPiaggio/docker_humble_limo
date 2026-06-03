@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 import xacro
 from ament_index_python.packages import get_package_share_path
@@ -10,7 +11,6 @@ from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from scripts import GazeboRosPaths
-import random
 
 
 def generate_launch_description():
@@ -29,17 +29,32 @@ def generate_launch_description():
         ]
         for _ in range(n_robots)
     ]
-    
 
     # Constants for paths to different files and folders
     name_package = 'limo_simulation'
     modelFileRelativePath = 'model/limo_four_diff.xacro'
     worldFileRelativePath = 'world/my_world.world'
+    default_rviz_config_path = 'rviz/urdf.rviz'
+
 
     pathModelFile = os.path.join(get_package_share_path(name_package), modelFileRelativePath)
     pathWorldFile = os.path.join(get_package_share_path(name_package), worldFileRelativePath)
+    pathRvizConfigFile = os.path.join(get_package_share_path(name_package), default_rviz_config_path)
     # robotDescription = xacro.process_file(pathModelFile).toxml()
 
+    # RVIZ launch file
+    rviz_arg = DeclareLaunchArgument(name='rvizconfig', default_value=str(pathRvizConfigFile),
+                                     description='Absolute path to rviz config file')
+    rviz_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        output='screen',
+        arguments=['-d', LaunchConfiguration('rvizconfig')],
+        parameters=[{'use_sim_time': True}],
+    )
+    
+    # Gazebo launch file
 
     gazebo_rosPakageLaunch = PythonLaunchDescriptionSource(
         os.path.join(get_package_share_path('gazebo_ros'), 'launch', 'gazebo.launch.py')
@@ -136,6 +151,8 @@ def generate_launch_description():
 
     LaunchDescriptionObject = LaunchDescription()
     LaunchDescriptionObject.add_action(gazeboLaunch)
+    LaunchDescriptionObject.add_action(rviz_arg)
+    LaunchDescriptionObject.add_action(rviz_node)
 
     for i in range(n_robots):
         LaunchDescriptionObject.add_action(spawnRobots[i])
