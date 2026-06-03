@@ -1,5 +1,6 @@
 import os
-
+import random
+import sys
 import xacro
 from ament_index_python.packages import get_package_share_path
 from launch import LaunchDescription
@@ -13,27 +14,47 @@ from scripts import GazeboRosPaths
 
 
 def generate_launch_description():
-    # generate coordinates of an square with center in the origin
-    #a = 1.5
-    # P = [[0, 0, 0, 0], [a, a, 0, -3], [a, a, 0, -3], [-a, a, 0, 0]]
-    # list of coordinates for the robots [x, y, z, yaw] in the world
+    n_robots = 1
+
+    for arg in sys.argv:
+        if arg.startswith("n_robots:="):
+            n_robots = int(arg.split(":=")[1])
+    
     P = [
-        [-0.437, -0.618, 0, 0.63],
-        [-0.582, 1.416, 0, -0.676],
-        [1.852, 1.443, 0, -2.5],
-        [1.95, -0.498, 0, 2.5],
+        [
+            random.uniform(-2.0, 2.0),   # x
+            random.uniform(-2.0, 2.0),   # y
+            0,                            # z
+            random.uniform(-3.14, 3.14)  # yaw
+        ]
+        for _ in range(n_robots)
     ]
-    n_robots = len(P)
 
     # Constants for paths to different files and folders
     name_package = 'limo_simulation'
     modelFileRelativePath = 'model/limo_four_diff.xacro'
     worldFileRelativePath = 'world/my_world.world'
+    default_rviz_config_path = 'rviz/urdf.rviz'
+
 
     pathModelFile = os.path.join(get_package_share_path(name_package), modelFileRelativePath)
     pathWorldFile = os.path.join(get_package_share_path(name_package), worldFileRelativePath)
+    pathRvizConfigFile = os.path.join(get_package_share_path(name_package), default_rviz_config_path)
     # robotDescription = xacro.process_file(pathModelFile).toxml()
 
+    # RVIZ launch file
+    rviz_arg = DeclareLaunchArgument(name='rvizconfig', default_value=str(pathRvizConfigFile),
+                                     description='Absolute path to rviz config file')
+    rviz_node = Node(
+        package='rviz2',
+        executable='rviz2',
+        name='rviz2',
+        output='screen',
+        arguments=['-d', LaunchConfiguration('rvizconfig')],
+        parameters=[{'use_sim_time': True}],
+    )
+    
+    # Gazebo launch file
 
     gazebo_rosPakageLaunch = PythonLaunchDescriptionSource(
         os.path.join(get_package_share_path('gazebo_ros'), 'launch', 'gazebo.launch.py')
@@ -130,6 +151,8 @@ def generate_launch_description():
 
     LaunchDescriptionObject = LaunchDescription()
     LaunchDescriptionObject.add_action(gazeboLaunch)
+    LaunchDescriptionObject.add_action(rviz_arg)
+    LaunchDescriptionObject.add_action(rviz_node)
 
     for i in range(n_robots):
         LaunchDescriptionObject.add_action(spawnRobots[i])

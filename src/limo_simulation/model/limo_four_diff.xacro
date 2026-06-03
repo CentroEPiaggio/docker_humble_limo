@@ -67,7 +67,7 @@
     </xacro:limo_laser>
 
     <xacro:limo_depth_camera parent_prefix="$(arg robot_name)/base_link" frame_prefix="$(arg robot_name)/depth_camera">
-        <origin xyz="0.084 0 0.3" rpy="0 0 0"/>
+        <origin xyz="0.084 0 0.03" rpy="0 0 0"/>
     </xacro:limo_depth_camera>
     
     <xacro:limo_imu parent_prefix="$(arg robot_name)/base_link" frame_prefix="$(arg robot_name)/imu">
