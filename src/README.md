@@ -3,17 +3,15 @@ ROS 2 packages to implement generic ros2-controllers based with limo simulation.
 
 ## Table of Contents
 
-- [Limo series - Gazebo simulation](#)
-  - [Table of Contents](#table-of-contents)
-  - [Overview](#overview)
-  - [Installation](#installation)
-  - [Usage](#usage)
-    - [With ROS](#with-ros-2)
-  - [Development](#development)
-    - [Pre-Commit](#pre-commit)
-    - [Tests](#tests)
-  - [Known Bugs](#known-bugs)
-  - [Author](#author)
+- [Table of Contents](#table-of-contents)
+- [Overview](#overview)
+- [Installation](#installation)
+- [Usage](#usage)
+  - [First time](#first-time)
+  - [develop](#develop)
+  - [Scripts](#scripts)
+    - [Examples](#examples)
+- [Author](#author)
 
 ## Overview
 
@@ -40,11 +38,16 @@ For new workspace  create folder and clone the repo in the source directory (don
 mkdir <my_workspace>
 cd <my_workspace>
 git clone <whatever you want>
+cd ..
 ```
 
-Build the workspace with
+Build the whole workspace with
 ```shell
 colcon build --symlink-install
+```
+or just the specific package with
+```shell
+colcon build --packages-select <my_workspace> --symlink-install
 ```
 
 Source the workspace with (you have to add it to the `~/.bashrc` or do it on every newly opened terminal)

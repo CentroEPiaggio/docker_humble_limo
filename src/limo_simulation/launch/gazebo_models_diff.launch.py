@@ -34,7 +34,7 @@ def generate_launch_description():
     name_package = 'limo_simulation'
     modelFileRelativePath = 'model/limo_four_diff.xacro'
     worldFileRelativePath = 'world/my_world.world'
-    default_rviz_config_path = 'rviz/urdf.rviz'
+    default_rviz_config_path = 'rviz/limo_display.rviz'
 
 
     pathModelFile = os.path.join(get_package_share_path(name_package), modelFileRelativePath)
