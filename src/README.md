@@ -37,11 +37,16 @@ For new workspace  create folder and clone the repo in the source directory (don
 mkdir <my_workspace>
 cd <my_workspace>
 git clone <whatever you want>
+cd ..
 ```
 
-Build the workspace with
+Build the whole workspace with
 ```shell
 colcon build --symlink-install
+```
+or just the specific package with
+```shell
+colcon build --packages-select <my_workspace> --symlink-install
 ```
 
 Source the workspace with (you have to add it to the `~/.bashrc` or do it on every newly opened terminal)
@@ -52,7 +57,7 @@ source install/setup.bash
 ### Scripts
 
 - limo_simulation
-  provide a gazebo simulation for testing limo models in gazebo.  
+  provide a gazebo simulation for testing limo models in gazebo classic.  
 
 #### Examples
 ```shell
