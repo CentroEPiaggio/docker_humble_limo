@@ -46,6 +46,7 @@ colcon build && source install/setup.bash
 ```
 
 ### Gazebo with N robots
+The simulator is Gazebo Fortress (`ros_gz`, `ign_ros2_control`), the version paired with Humble.
 ```shell
 ros2 launch limo_simulation gazebo_models_diff.launch.py n_robots:=3
 ```
@@ -60,11 +61,12 @@ Robots are spawned one after the other (entity -> `joint_state_broadcaster` -> `
 
 Per-robot interface (`robot_N`):
 - command: `/robot_N/diff_drive_base_controller/cmd_vel` (`geometry_msgs/TwistStamped`)
-- odometry: `/robot_N/diff_drive_base_controller/odom`
-- sensors: `/robot_N/scan`, `/robot_N/imu`, `/robot_N/camera_ir/...`
-- TF: `world -> robot_N/odom -> robot_N/base_footprint -> robot_N/...`
+- ground truth: `/robot_N/ground_truth/odom` (pose from Gazebo, in the `world` frame)
+- wheel odometry: `/robot_N/diff_drive_base_controller/odom` (estimate in `robot_N/odom`, anchored at the spawn pose; drifts)
+- sensors: `/robot_N/scan`, `/robot_N/imu`, `/robot_N/camera_ir/image_raw`, `/robot_N/camera_ir/depth/...`
+- TF: `world -> robot_N/base_footprint -> robot_N/...` from the ground truth, so RViz matches Gazebo; `world -> robot_N/odom` is static at the spawn pose
 
-The robot is a four-wheel skid-steer: wheel odometry over-estimates rotation when turning in place.
+The robot is a four-wheel skid-steer: wheel odometry over-estimates rotation when turning, so it is published only on its topic (no TF). Tune `wheel_separation_multiplier` in `config/diff_drive_controller.yaml` to reduce the drift.
 
 ### RViz only (no Gazebo)
 ```shell

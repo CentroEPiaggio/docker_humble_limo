@@ -19,6 +19,13 @@ docker run \
     -it \
     `# Clean up the container after exit.` \
     --rm \
+    `# Display (X11) and GPU for Gazebo and RViz.` \
+    --env="DISPLAY=$DISPLAY" \
+    --env="QT_X11_NO_MITSHM=1" \
+    --env="XAUTHORITY=$XAUTH" \
+    -v $XAUTH:$XAUTH \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    --device /dev/dri \
     `# Mount the folders in this directory.` \
     -v ${PWD}:${PWD} \
     `# Preserve bash history for autocomplete).` \

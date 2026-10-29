@@ -6,7 +6,9 @@
 
     <xacro:macro name="gazebo_depth_camera" params="frame_prefix">
         <gazebo reference="${frame_prefix}_link">
-          <sensor name="sensor_camera" type="depth">
+          <sensor name="sensor_camera" type="rgbd_camera">
+            <topic>/$(arg robot_name)/camera_ir</topic>
+            <ignition_frame_id>$(arg robot_name)/depth_link</ignition_frame_id>
             <pose>0.0 0.0 0.0 0.0 0.0 0.0</pose>
             <always_on>true</always_on>
             <visualize>true</visualize>
@@ -23,23 +25,6 @@
                   <far>300</far>
               </clip>
             </camera>
-
-            <plugin name="gazebo_ros_depth_camera_sensor" filename="libgazebo_ros_camera.so">
-                <ros>
-                  <namespace>$(arg robot_name)</namespace>
-                  <remapping>image_raw:=color/image_raw</remapping>
-                  <remapping>camera_info:=color/camera_info</remapping>
-                  <remapping>depth/image_raw:=depth/image_raw</remapping>
-                  <remapping>depth/camera_info:=depth/camera_info</remapping>
-                  <remapping>points:=depth/points</remapping>
-                </ros>
-
-                <camera_name>camera_ir</camera_name>
-                <frame_name>$(arg robot_name)/depth_link</frame_name>
-                <hack_baseline>0.0</hack_baseline>
-                <min_depth>0.5</min_depth>
-                <max_depth>3.0</max_depth>
-              </plugin>
         </sensor>
           </gazebo>
     </xacro:macro>
@@ -48,6 +33,8 @@
       <gazebo reference="${frame_prefix}_link">
         <gravity>true</gravity>
         <sensor name="imu_sensor" type="imu">
+          <topic>/$(arg robot_name)/imu</topic>
+          <ignition_frame_id>${frame_prefix}_link</ignition_frame_id>
           <always_on>true</always_on>
           <update_rate>100</update_rate>
           <visualize>true</visualize>
@@ -113,14 +100,6 @@
               </z>
             </linear_acceleration>
           </imu>
-          <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
-            <ros>
-              <namespace>$(arg robot_name)</namespace>
-              <remapping>~/out:=imu</remapping>
-            </ros>
-            <initial_orientation_as_reference>false</initial_orientation_as_reference>
-            <frame_name>${frame_prefix}_link</frame_name>
-          </plugin>
           <pose>0 0 0 0 0 0</pose>
         </sensor>
       </gazebo>

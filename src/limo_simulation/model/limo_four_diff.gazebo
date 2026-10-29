@@ -9,7 +9,7 @@
     <xacro:gazebo_imu frame_prefix="$(arg robot_name)/imu" /> 
     <ros2_control name="GazeboSystem" type="system">
         <hardware>
-            <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+            <plugin>ign_ros2_control/IgnitionSystem</plugin>
         </hardware>
         <joint name="rear_left_wheel">
             <command_interface name="velocity">
@@ -47,34 +47,34 @@
     <gazebo reference="$(arg robot_name)/base_link">
         <material>Gazebo/Grey</material>
     </gazebo>
-    <!-- Skid steering - isotropic moderate friction lets the wheels slip sideways when turning -->
+    <!-- Skid steering - isotropic friction: the wheels must still slip sideways when turning -->
     <gazebo reference="$(arg robot_name)/front_left_wheel_link">
-      <mu1>0.4</mu1>
-      <mu2>0.4</mu2>
+      <mu1>1.0</mu1>
+      <mu2>1.0</mu2>
       <kp>1000000.0</kp>
       <kd>100.0</kd>
       <minDepth>0.001</minDepth>
       <maxContacts value="64"/>
   </gazebo>
   <gazebo reference="$(arg robot_name)/front_right_wheel_link">
-      <mu1>0.4</mu1>
-      <mu2>0.4</mu2>
+      <mu1>1.0</mu1>
+      <mu2>1.0</mu2>
       <kp>1000000.0</kp>
       <kd>100.0</kd>
       <minDepth>0.001</minDepth>
       <maxContacts value="64"/>
   </gazebo>
   <gazebo reference="$(arg robot_name)/rear_left_wheel_link">
-      <mu1>0.4</mu1>
-      <mu2>0.4</mu2>
+      <mu1>1.0</mu1>
+      <mu2>1.0</mu2>
       <kp>1000000.0</kp>
       <kd>100.0</kd>
       <minDepth>0.001</minDepth>
       <maxContacts value="64"/>
   </gazebo>
   <gazebo reference="$(arg robot_name)/rear_right_wheel_link">
-      <mu1>0.4</mu1>
-      <mu2>0.4</mu2>
+      <mu1>1.0</mu1>
+      <mu2>1.0</mu2>
       <kp>1000000.0</kp>
       <kd>100.0</kd>
       <minDepth>0.001</minDepth>
@@ -82,11 +82,24 @@
   </gazebo>
 
     <gazebo>
-        <plugin name="gazebo_ros2_control" filename="libgazebo_ros2_control.so">
+        <plugin filename="libign_ros2_control-system.so" name="ign_ros2_control::IgnitionROS2ControlPlugin">
             <ros>
                 <namespace>/$(arg namespace)</namespace>
             </ros>
             <parameters>$(arg controller_config)</parameters>
+        </plugin>
+    </gazebo>
+
+    <!-- Ground truth: pose in the Gazebo world frame, i.e. world -> robot_name/base_footprint.
+         Bridged to /tf and /<robot_name>/ground_truth/odom by the launch file -->
+    <gazebo>
+        <plugin filename="ignition-gazebo-odometry-publisher-system" name="ignition::gazebo::systems::OdometryPublisher">
+            <odom_frame>world</odom_frame>
+            <robot_base_frame>$(arg robot_name)/base_footprint</robot_base_frame>
+            <odom_topic>/model/$(arg robot_name)/odometry</odom_topic>
+            <tf_topic>/model/$(arg robot_name)/tf</tf_topic>
+            <dimensions>2</dimensions>
+            <odom_publish_frequency>50</odom_publish_frequency>
         </plugin>
     </gazebo>
 </robot>

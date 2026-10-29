@@ -41,6 +41,42 @@ def robot_description(robot_name, config_path=None):
     return xacro.process_file(share_path(MODEL_FILE), mappings=mappings).toxml()
 
 
+# (gz topic suffix, ros topic suffix, ros type, gz type) bridged for every robot, Gazebo -> ROS
+_ROBOT_BRIDGES = [
+    ('scan', 'scan', 'sensor_msgs/msg/LaserScan', 'ignition.msgs.LaserScan'),
+    ('imu', 'imu', 'sensor_msgs/msg/Imu', 'ignition.msgs.IMU'),
+    ('camera_ir/image', 'camera_ir/image_raw', 'sensor_msgs/msg/Image', 'ignition.msgs.Image'),
+    ('camera_ir/camera_info', 'camera_ir/camera_info', 'sensor_msgs/msg/CameraInfo',
+     'ignition.msgs.CameraInfo'),
+    ('camera_ir/depth_image', 'camera_ir/depth/image_raw', 'sensor_msgs/msg/Image',
+     'ignition.msgs.Image'),
+    ('camera_ir/points', 'camera_ir/depth/points', 'sensor_msgs/msg/PointCloud2',
+     'ignition.msgs.PointCloudPacked'),
+]
+
+
+def bridge_config(robot_name):
+    """Write a ros_gz_bridge config for one robot's sensors and ground truth; return its path."""
+    entries = [{
+        'ros_topic_name': f'/{robot_name}/{ros}', 'gz_topic_name': f'/{robot_name}/{gz}',
+        'ros_type_name': ros_type, 'gz_type_name': gz_type, 'direction': 'GZ_TO_ROS',
+    } for gz, ros, ros_type, gz_type in _ROBOT_BRIDGES]
+    entries += [
+        # ground truth world -> base_footprint, see OdometryPublisher in the model
+        {'ros_topic_name': '/tf', 'gz_topic_name': f'/model/{robot_name}/tf',
+         'ros_type_name': 'tf2_msgs/msg/TFMessage', 'gz_type_name': 'ignition.msgs.Pose_V',
+         'direction': 'GZ_TO_ROS'},
+        {'ros_topic_name': f'/{robot_name}/ground_truth/odom',
+         'gz_topic_name': f'/model/{robot_name}/odometry',
+         'ros_type_name': 'nav_msgs/msg/Odometry', 'gz_type_name': 'ignition.msgs.Odometry',
+         'direction': 'GZ_TO_ROS'},
+    ]
+    path = os.path.join(tmp_dir(), f'{robot_name}_bridge.yaml')
+    with open(path, 'w') as f:
+        yaml.safe_dump(entries, f)
+    return path
+
+
 def random_poses(n, half_size=2.0, min_dist=0.5, seed=None, max_tries=10000):
     """Random [x, y, z, yaw] poses inside a square, at least min_dist apart."""
     rng = random.Random(seed)

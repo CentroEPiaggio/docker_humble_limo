@@ -95,11 +95,13 @@
 
 
 <gazebo reference="$(arg robot_name)/laser_link">
-    <sensor name="laser" type="ray">
+    <sensor name="laser" type="gpu_lidar">
+      <topic>/$(arg robot_name)/scan</topic>
+      <ignition_frame_id>$(arg robot_name)/laser_link</ignition_frame_id>
       <always_on>true</always_on>
       <visualize>false</visualize>
       <update_rate>8</update_rate>
-      <ray>
+      <lidar>
         <scan>
           <horizontal>
             <samples>720</samples>
@@ -118,15 +120,7 @@
           <mean>0.0</mean>
           <stddev>0.01</stddev>
         </noise>
-      </ray>
-      <plugin name="scan" filename="libgazebo_ros_ray_sensor.so">
-        <ros>
-          <namespace>$(arg robot_name)</namespace>
-          <remapping>~/out:=scan</remapping>
-        </ros>
-        <output_type>sensor_msgs/LaserScan</output_type>
-        <frame_name>$(arg robot_name)/laser_link</frame_name>
-      </plugin>
+      </lidar>
     </sensor>
   </gazebo>
 </robot>

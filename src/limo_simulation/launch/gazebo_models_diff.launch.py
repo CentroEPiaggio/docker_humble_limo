@@ -7,7 +7,7 @@ from launch.actions import (DeclareLaunchArgument, IncludeLaunchDescription, Opa
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
 from limo_simulation import launch_utils as lu
@@ -49,7 +49,9 @@ def spawn_robots(context):
             parameters=[{'robot_description': robot_description, 'use_sim_time': True}],
         )
 
-        # Odometry starts at the spawn pose: anchor each odom frame in a common world frame
+        # Wheel odometry starts at the spawn pose: anchor each odom frame in the world frame.
+        # base_footprint is attached to world by the ground truth, so robot_N/odom is only
+        # the reference frame of /robot_N/diff_drive_base_controller/odom
         world_to_odom = Node(
             package='tf2_ros',
             executable='static_transform_publisher',
@@ -60,16 +62,25 @@ def spawn_robots(context):
             parameters=[{'use_sim_time': True}],
         )
 
+        # Sensors and ground truth (world -> base_footprint tf) from Gazebo to ROS
+        bridge = Node(
+            package='ros_gz_bridge',
+            executable='parameter_bridge',
+            name='gz_bridge',
+            namespace=robot_name,
+            parameters=[{'config_file': lu.bridge_config(robot_name), 'use_sim_time': True}],
+            output='screen',
+        )
+
         # Node to spawn the robot in gazebo
         spawn_entity = Node(
-            package='gazebo_ros',
-            executable='spawn_entity.py',
+            package='ros_gz_sim',
+            executable='create',
             name='spawn_entity',
             namespace=robot_name,
             arguments=[
                 '-topic', f'/{robot_name}/robot_description',
-                '-robot_namespace', robot_name,
-                '-entity', robot_name,
+                '-name', robot_name,
                 '-x', str(x), '-y', str(y), '-z', str(z), '-Y', str(yaw),
             ],
             output='screen',
@@ -87,9 +98,9 @@ def spawn_robots(context):
         joint_state_broadcaster = spawner('joint_state_broadcaster')
         diff_drive_controller = spawner('diff_drive_base_controller')
 
-        actions += [robot_state_publisher, world_to_odom]
-        # gazebo_ros2_control stores its namespace and params file in the process-global ROS
-        # arguments, so controllers loaded after the next robot is spawned would end up in
+        actions += [robot_state_publisher, world_to_odom, bridge]
+        # the ros2_control Gazebo plugin stores its namespace and params file in the
+        # process-global ROS arguments, so controllers loaded after the next robot is spawned would end up in
         # that robot's namespace. Spawn robot by robot: entity -> broadcaster -> diff drive.
         if previous_step is None:
             actions.append(spawn_entity)
@@ -110,10 +121,22 @@ def spawn_robots(context):
 def generate_launch_description():
     world_file = lu.share_path('world/my_world.world')
 
+    # -r: start running, -s: server only (no GUI)
+    gz_args = PythonExpression([
+        "'-r ", world_file, "' + ('' if '", LaunchConfiguration('gui'),
+        "'.lower() in ('true', '1') else ' -s')"])
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(get_package_share_path('gazebo_ros'), 'launch', 'gazebo.launch.py')),
-        launch_arguments={'world': world_file, 'gui': LaunchConfiguration('gui')}.items(),
+            os.path.join(get_package_share_path('ros_gz_sim'), 'launch', 'gz_sim.launch.py')),
+        launch_arguments={'gz_args': gz_args}.items(),
+    )
+
+    clock_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        name='clock_bridge',
+        arguments=['/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock'],
+        output='screen',
     )
 
     return LaunchDescription([
@@ -127,5 +150,6 @@ def generate_launch_description():
                               description='Absolute path to rviz config file '
                                           '(empty = generated for n_robots)'),
         gazebo,
+        clock_bridge,
         OpaqueFunction(function=spawn_robots),
     ])
