@@ -1,11 +1,14 @@
 <?xml version="1.0"?>
 <robot name="limo_xacro" xmlns:xacro="http://ros.org/wiki/xacro">
     <xacro:macro name="limo_wheel" params="parent_prefix wheel_prefix reflect *joint_pose">
-        <link name="${wheel_prefix}_wheel_link">
+        <link name="$(arg robot_name)/${wheel_prefix}_wheel_link">
             <inertial>
                 <origin xyz="0 0 0" />
-                <mass value="0.5" />
-                <inertia ixx="0.01055" ixy="0" ixz="0" iyy="0.00075" iyz="0" izz="0.01055" />
+                <mass value="${wheel_mass}" />
+                <!-- solid cylinder inertia, axis along y -->
+                <inertia ixx="${wheel_mass*(3*wheel_radius**2 + wheel_length**2)/12}" ixy="0" ixz="0"
+                         iyy="${wheel_mass*wheel_radius**2/2}" iyz="0"
+                         izz="${wheel_mass*(3*wheel_radius**2 + wheel_length**2)/12}" />
             </inertial>
             <visual>
                 <origin xyz="0 0 0" rpy="0 0 0" />
@@ -23,7 +26,7 @@
 
         <joint name="${wheel_prefix}_wheel" type="continuous">
             <parent link="${parent_prefix}"/>
-            <child link="${wheel_prefix}_wheel_link"/>
+            <child link="$(arg robot_name)/${wheel_prefix}_wheel_link"/>
             <xacro:insert_block name="joint_pose"/>
             <axis xyz="0 ${reflect*1} 0"/>
         </joint>
@@ -47,12 +50,6 @@
                 <geometry>
                     <cylinder radius="0.02" length="0.01"/>
                 </geometry>
-                <!--<material name='laser_material'>
-                    <ambient>0.1 0.1 0.1 1</ambient>
-                    <diffuse>0.1 0.1 0.2 1</diffuse>
-                    <specular>0 0 0 0</specular>
-                    <emissive>0 0 0 1</emissive>
-                </material>-->
             </visual>
             <collision name='laser_collision'>
                 <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -88,12 +85,6 @@
                 <geometry>
                     <box size="0.02 0.06 0.015"/>
                 </geometry>
-                <!--<material name='depth_camera_material'>
-                    <ambient>0.1 0.1 0.1 1</ambient>
-                    <diffuse>0.1 0.1 0.2 1</diffuse>
-                    <specular>0 0 0 0</specular>
-                    <emissive>0 0 0 1</emissive>
-                </material>-->
             </visual>
             <collision name='depth_camera_collision'>
                 <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -109,12 +100,12 @@
             <child link="${frame_prefix}_link"/>
             <parent link="${parent_prefix}"/>
         </joint>
-        <link name="depth_link"></link>
+        <link name="$(arg robot_name)/depth_link"></link>
 
         <joint name="${frame_prefix}_to_camera_joint" type="fixed">
             <origin xyz="0 0 0" rpy="${-M_PI/2} 0 ${-M_PI/2} "/>
             <parent link="${frame_prefix}_link"/>
-            <child link="depth_link"/>
+            <child link="$(arg robot_name)/depth_link"/>
           </joint>
 
         <gazebo reference="${frame_prefix}_link">
@@ -139,12 +130,6 @@
                 <geometry>
                     <box size="0.001 0.001 0.001"/>
                 </geometry>
-                <!--<material name='imu_material'>
-                    <ambient>0.1 0.1 0.1 1</ambient>
-                    <diffuse>0.1 0.1 0.2 1</diffuse>
-                    <specular>0 0 0 0</specular>
-                    <emissive>0 0 0 1</emissive>
-                </material>-->
             </visual>
             <collision name='imu_collision'>
                 <origin xyz="0 0 0" rpy="0 0 0"/>

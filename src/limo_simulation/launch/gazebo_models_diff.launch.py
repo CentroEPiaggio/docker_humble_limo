@@ -1,163 +1,136 @@
 import os
-import random
-import sys
-import xacro
+
 from ament_index_python.packages import get_package_share_path
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription
-from launch.conditions import IfCondition, UnlessCondition
+from launch.actions import (DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction,
+                            RegisterEventHandler, TimerAction)
+from launch.conditions import IfCondition
+from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
-from scripts import GazeboRosPaths
+
+from limo_simulation import launch_utils as lu
+
+
+def spawn_robots(context):
+    n_robots = int(LaunchConfiguration('n_robots').perform(context))
+    if n_robots < 1:
+        raise ValueError('n_robots must be >= 1')
+    seed = LaunchConfiguration('seed').perform(context)
+    poses = lu.random_poses(n_robots, seed=int(seed) if seed else None)
+
+    rviz_config = LaunchConfiguration('rvizconfig').perform(context)
+    if not rviz_config:
+        rviz_config = lu.rviz_config(n_robots, with_sensors=True)
+
+    actions = [
+        Node(
+            package='rviz2',
+            executable='rviz2',
+            name='rviz2',
+            output='screen',
+            arguments=['-d', rviz_config],
+            parameters=[{'use_sim_time': True}],
+            condition=IfCondition(LaunchConfiguration('rviz')),
+        )
+    ]
+
+    previous_step = None
+    for robot_name, (x, y, z, yaw) in zip(lu.robot_names(n_robots), poses):
+        robot_description = lu.robot_description(robot_name, lu.controller_config(robot_name))
+
+        # Node to publish the state of the robot to tf
+        robot_state_publisher = Node(
+            package='robot_state_publisher',
+            executable='robot_state_publisher',
+            namespace=robot_name,
+            output='screen',
+            parameters=[{'robot_description': robot_description, 'use_sim_time': True}],
+        )
+
+        # Odometry starts at the spawn pose: anchor each odom frame in a common world frame
+        world_to_odom = Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='world_to_odom',
+            namespace=robot_name,
+            # Foxy: x y z yaw pitch roll frame_id child_frame_id
+            arguments=[str(x), str(y), '0', str(yaw), '0', '0', 'world', f'{robot_name}/odom'],
+            parameters=[{'use_sim_time': True}],
+        )
+
+        # Node to spawn the robot in gazebo
+        spawn_entity = Node(
+            package='gazebo_ros',
+            executable='spawn_entity.py',
+            name='spawn_entity',
+            namespace=robot_name,
+            arguments=[
+                '-topic', f'/{robot_name}/robot_description',
+                '-robot_namespace', robot_name,
+                '-entity', robot_name,
+                '-x', str(x), '-y', str(y), '-z', str(z), '-Y', str(yaw),
+            ],
+            output='screen',
+        )
+
+        def spawner(controller, robot_name=robot_name):
+            return Node(
+                package='controller_manager',
+                executable='spawner.py',
+                namespace=robot_name,
+                arguments=[controller, '--controller-manager', f'/{robot_name}/controller_manager'],
+                output='screen',
+            )
+
+        joint_state_broadcaster = spawner('joint_state_broadcaster')
+        diff_drive_controller = spawner('diff_drive_base_controller')
+
+        actions += [robot_state_publisher, world_to_odom]
+        # gazebo_ros2_control stores its namespace and params file in the process-global ROS
+        # arguments, so controllers loaded after the next robot is spawned would end up in
+        # that robot's namespace. Spawn robot by robot: entity -> broadcaster -> diff drive.
+        if previous_step is None:
+            # Gazebo Classic (Foxy) silently skips the plugins of a model spawned before the
+            # world has finished loading: give gzserver time to start
+            actions.append(TimerAction(period=LaunchConfiguration('spawn_delay'),
+                                       actions=[spawn_entity]))
+        else:
+            actions.append(RegisterEventHandler(OnProcessExit(
+                target_action=previous_step, on_exit=[spawn_entity])))
+        actions += [
+            RegisterEventHandler(OnProcessExit(
+                target_action=spawn_entity, on_exit=[joint_state_broadcaster])),
+            RegisterEventHandler(OnProcessExit(
+                target_action=joint_state_broadcaster, on_exit=[diff_drive_controller])),
+        ]
+        previous_step = diff_drive_controller
+
+    return actions
 
 
 def generate_launch_description():
-    n_robots = 1
+    world_file = lu.share_path('world/my_world.world')
 
-    for arg in sys.argv:
-        if arg.startswith("n_robots:="):
-            n_robots = int(arg.split(":=")[1])
-    
-    P = [
-        [
-            random.uniform(-2.0, 2.0),   # x
-            random.uniform(-2.0, 2.0),   # y
-            0,                            # z
-            random.uniform(-3.14, 3.14)  # yaw
-        ]
-        for _ in range(n_robots)
-    ]
-
-    # Constants for paths to different files and folders
-    name_package = 'limo_simulation'
-    modelFileRelativePath = 'model/limo_four_diff.xacro'
-    worldFileRelativePath = 'world/my_world.world'
-    default_rviz_config_path = 'rviz/limo_display.rviz'
-
-
-    pathModelFile = os.path.join(get_package_share_path(name_package), modelFileRelativePath)
-    pathWorldFile = os.path.join(get_package_share_path(name_package), worldFileRelativePath)
-    pathRvizConfigFile = os.path.join(get_package_share_path(name_package), default_rviz_config_path)
-    # robotDescription = xacro.process_file(pathModelFile).toxml()
-
-    # RVIZ launch file
-    rviz_arg = DeclareLaunchArgument(name='rvizconfig', default_value=str(pathRvizConfigFile),
-                                     description='Absolute path to rviz config file')
-    rviz_node = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz2',
-        output='screen',
-        arguments=['-d', LaunchConfiguration('rvizconfig')],
-        parameters=[{'use_sim_time': True}],
-    )
-    
-    # Gazebo launch file
-
-    gazebo_rosPakageLaunch = PythonLaunchDescriptionSource(
-        os.path.join(get_package_share_path('gazebo_ros'), 'launch', 'gazebo.launch.py')
-    )
-    gazeboLaunch = IncludeLaunchDescription(
-        gazebo_rosPakageLaunch,
-        launch_arguments={'world': pathWorldFile}.items(),
+    gazebo = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(get_package_share_path('gazebo_ros'), 'launch', 'gazebo.launch.py')),
+        launch_arguments={'world': world_file, 'gui': LaunchConfiguration('gui')}.items(),
     )
 
-    spawnRobots = []
-    robotsStatePub = []
-    robotsStateBrod = []
-    robotsControllers = []
-
-    # publishers = []
-    for i in range(n_robots):
-        robot_name = f'robot_{i}'
-        robotDescription = xacro.process_file(
-            pathModelFile, mappings={'robot_name': robot_name, 'namespace': robot_name}
-        ).toxml()
-        publisher_name = f'robot_state_publisher'
-
-        # Node to publish the state of the robot to tf
-        robotStatePubNode = Node(
-            package='robot_state_publisher',
-            executable='robot_state_publisher',
-            name=publisher_name,
-            namespace=robot_name,
-            output='screen',
-            parameters=[{'robot_description': robotDescription, 'use_sim_time': True}],
-        )
-
-        robotsStatePub.append(robotStatePubNode)
-        spawner_name = f'spawn_entity_{robot_name}'
-        # Node to spawn the robot in gazebo
-        spawnModelNode = Node(
-            package='gazebo_ros',
-            executable='spawn_entity.py',
-            name=spawner_name,
-            arguments=[
-                '-topic',
-                f'/{robot_name}/robot_description',
-                '-robot_namespace',
-                robot_name,
-                '-entity',
-                f'{robot_name}',
-                '-x',
-                str(P[i][0]),
-                '-y',
-                str(P[i][1]),
-                '-z',
-                str(P[i][2]),
-                '-Y',
-                str(P[i][3]),
-            ],
-            namespace=robot_name,
-            output='screen',
-        )
-        spawnRobots.append(spawnModelNode)
-
-        broadcaster_namespace = f'joint_state_broadcaster_{i}'
-
-        controller_namespace = f'diff_drive_base_controller_{i}'
-
-        load_joint_state_broadcaster = Node(
-            package='controller_manager',
-            executable='spawner',
-            name=broadcaster_namespace,
-            namespace=robot_name,
-            arguments=[
-                'joint_state_broadcaster',
-                '--controller-manager',
-                f'/{robot_name}/controller_manager',
-            ],
-            parameters=[{'use_sim_time': True}],
-            output='screen',
-        )
-        robotsStateBrod.append(load_joint_state_broadcaster)
-
-        load_diff_drive_base_controller = Node(
-            package='controller_manager',
-            executable='spawner',
-            name=controller_namespace,
-            namespace=robot_name,
-            arguments=[
-                'diff_drive_base_controller',
-                '--controller-manager',
-                f'/{robot_name}/controller_manager',
-            ],
-            parameters=[{'use_sim_time': True}],
-            output='screen',
-        )
-        robotsControllers.append(load_diff_drive_base_controller)
-
-    LaunchDescriptionObject = LaunchDescription()
-    LaunchDescriptionObject.add_action(gazeboLaunch)
-    LaunchDescriptionObject.add_action(rviz_arg)
-    LaunchDescriptionObject.add_action(rviz_node)
-
-    for i in range(n_robots):
-        LaunchDescriptionObject.add_action(spawnRobots[i])
-        LaunchDescriptionObject.add_action(robotsStatePub[i])
-        LaunchDescriptionObject.add_action(robotsStateBrod[i])
-        LaunchDescriptionObject.add_action(robotsControllers[i])
-
-    return LaunchDescriptionObject
+    return LaunchDescription([
+        DeclareLaunchArgument('n_robots', default_value='1',
+                              description='Number of robots to spawn'),
+        DeclareLaunchArgument('seed', default_value='',
+                              description='Random seed for spawn poses (empty = random)'),
+        DeclareLaunchArgument('gui', default_value='true', description='Start the Gazebo client'),
+        DeclareLaunchArgument('spawn_delay', default_value='5.0',
+                              description='Seconds to wait for gzserver before the first spawn'),
+        DeclareLaunchArgument('rviz', default_value='true', description='Start rviz'),
+        DeclareLaunchArgument('rvizconfig', default_value='',
+                              description='Absolute path to rviz config file '
+                                          '(empty = generated for n_robots)'),
+        gazebo,
+        OpaqueFunction(function=spawn_robots),
+    ])

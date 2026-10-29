@@ -28,6 +28,7 @@ RUN --mount=type=cache,sharing=locked,target=/var/cache/apt --mount=type=cache,s
     ros-$ROS_DISTRO-rqt-graph \
     ros-$ROS_DISTRO-rviz2 \
     ros-$ROS_DISTRO-xacro \
+    ros-$ROS_DISTRO-rosbridge-suite \
     sudo \
     xterm
 

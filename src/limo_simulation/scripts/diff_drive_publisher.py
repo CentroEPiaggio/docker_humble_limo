@@ -1,5 +1,6 @@
+#!/usr/bin/env python3
 import rclpy
-from geometry_msgs.msg import TwistStamped
+from geometry_msgs.msg import Twist
 from rclpy.node import Node
 
 
@@ -7,18 +8,20 @@ class DiffDrivePublisher(Node):
     def __init__(self):
         super().__init__('diff_drive_publisher')
 
-        self.publisher_ = self.create_publisher(
-            TwistStamped, 'diff_drive_base_controller/cmd_vel', 10
-        )
+        # robot to drive, e.g. robot_0 (empty: use the node namespace)
+        robot = self.declare_parameter('robot', '').value
+        topic = 'diff_drive_base_controller/cmd_vel_unstamped'
+        if robot:
+            topic = f'/{robot}/{topic}'
+        self.publisher_ = self.create_publisher(Twist, topic, 10)
 
         self.timer = self.create_timer(0.03, self.publish_command)  # 10ms = 100Hz
-        self.get_logger().info('DiffDrivePublisher started.')
+        self.get_logger().info(f'DiffDrivePublisher started on {self.publisher_.topic_name}.')
 
     def publish_command(self):
-        msg = TwistStamped()
-        msg.header.stamp = self.get_clock().now().to_msg()
-        msg.twist.linear.x = -1.0
-        msg.twist.angular.z = 2.0
+        msg = Twist()
+        msg.linear.x = -1.0
+        msg.angular.z = 2.0
         self.publisher_.publish(msg)
 
 
@@ -31,7 +34,8 @@ def main(args=None):
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':
