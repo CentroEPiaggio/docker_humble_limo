@@ -38,6 +38,54 @@ Run the container with
 This repo also supports VS Code devcontainers.
 
 
+## Simulation
+
+Build the workspace inside the container:
+```shell
+colcon build && source install/setup.bash
+```
+
+### Gazebo with N robots
+```shell
+ros2 launch limo_simulation gazebo_models_diff.launch.py n_robots:=3
+```
+Arguments:
+- `n_robots` (default `1`): number of robots, named `robot_0`, `robot_1`, ...
+- `seed` (default random): seed for the spawn poses (random in a 4x4 m square, at least 0.5 m apart)
+- `gui` (default `true`): start the Gazebo client
+- `rviz` (default `true`): start RViz with a config generated for `n_robots`
+- `rvizconfig`: use a custom RViz config instead
+
+Robots are spawned one after the other (entity -> `joint_state_broadcaster` -> `diff_drive_base_controller`), so startup takes a few seconds per robot.
+
+Per-robot interface (`robot_N`):
+- command: `/robot_N/diff_drive_base_controller/cmd_vel` (`geometry_msgs/TwistStamped`)
+- odometry: `/robot_N/diff_drive_base_controller/odom`
+- sensors: `/robot_N/scan`, `/robot_N/imu`, `/robot_N/camera_ir/...`
+- TF: `world -> robot_N/odom -> robot_N/base_footprint -> robot_N/...`
+
+The robot is a four-wheel skid-steer: wheel odometry over-estimates rotation when turning in place.
+
+### RViz only (no Gazebo)
+```shell
+ros2 launch limo_simulation rviz_models.launch.py n_robots:=4 gui:=true
+```
+Robots are placed on a grid (`spacing`, default 0.5 m); `gui:=true` opens `joint_state_publisher_gui` sliders.
+
+### Keyboard teleoperation
+With the simulation running, in another terminal:
+```shell
+ros2 launch limo_simulation teleop.launch.py robot:=robot_1
+```
+The keyboard is read in a new `xterm` window (change it with `terminal:='gnome-terminal --'`).
+
+### Test publishers
+```shell
+ros2 run limo_simulation diff_drive_publisher.py --ros-args -p robot:=robot_0
+ros2 run limo_simulation diff_drive_publisher --ros-args -p robot:=robot_0
+```
+
+
 ## Author
 
 [Federico Iadarola](https://github.com/fedeiada) 
