@@ -142,4 +142,5 @@ Keys `q w e r t y` / `a s d f g h` jog joints 1-6 +/-, `o`/`c` open/close the gr
 
 ## References
 
-- [`docker_ros_nvidia`](https://github.com/ddebenedittis/docker_ros_nvidia): base repo for this Docker container.- [AgileX Robotics](https://github.com/agilexrobotics): LIMO robot software ([`limo_ros2`](https://github.com/agilexrobotics/limo_ros2/tree/humble)), source of the LIMO model.
+- [`docker_ros_nvidia`](https://github.com/ddebenedittis/docker_ros_nvidia): base repo for this Docker container.
+- [AgileX Robotics](https://github.com/agilexrobotics): LIMO robot software ([`limo_ros2`](https://github.com/agilexrobotics/limo_ros2/tree/humble)), source of the LIMO model.
