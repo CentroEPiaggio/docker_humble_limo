@@ -116,5 +116,11 @@ RUN sudo chmod +x /ros_entrypoint.sh ; sudo chown ${USER} /ros_entrypoint.sh \
 
 ENV MPLCONFIGDIR=/home/${USER}/.matplotlib
 
+# --net=host shares Gazebo transport discovery with the host/LAN: newer Gazebo versions
+# (e.g. Harmonic from a ROS Jazzy install) flood Fortress with "Unknown message type [9]".
+# Keep Gazebo transport on loopback and in its own partition.
+ENV IGN_IP=127.0.0.1
+ENV IGN_PARTITION=limo_sim
+
 ENTRYPOINT ["/ros_entrypoint.sh"]
 CMD ["bash"]
