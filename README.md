@@ -87,6 +87,51 @@ ros2 run limo_simulation diff_drive_publisher.py --ros-args -p robot:=robot_0
 ros2 run limo_simulation diff_drive_publisher --ros-args -p robot:=robot_0
 ```
 
+### LIMO + myCobot 280 arm
+Every robot can carry the myCobot 280 M5 with the adaptive gripper, mounted as on the real robot (`base_link -> g_base`, yaw +90°):
+```shell
+ros2 launch limo_simulation gazebo_models_diff.launch.py n_robots:=2 with_arm:=true
+```
+`with_arm` defaults to `false`, so existing launches are unchanged.
+
+Packages:
+- `mycobot_description`: arm + gripper xacro (same joint names and kinematics as the real `mycobot_280_m5_adaptive_gripper.urdf`, with inertials and Gazebo mesh paths) and meshes
+- `mycobot_interfaces`: the real robot messages/services (`MycobotSetAngles`, `MycobotSetCoords`, `MycobotGripperStatus`, ...)
+
+The arm joints share the robot's single `ros2_control` block (`config/limo_mycobot_controllers.yaml`):
+- `arm_controller` (`JointTrajectoryController`): 6 arm joints, `/robot_N/arm_controller/joint_trajectory` or the `follow_joint_trajectory` action
+- `gripper_group_controller` (`JointGroupPositionController`): gripper driver + its 5 linkage joints (the former `<mimic>` joints)
+
+`mycobot_sim_bridge.py` runs in every robot namespace and exposes the real robot topic API (`mycobot_topics.py`), so scripts written for the real arm work in simulation:
+
+| Topic (`/robot_N/...`) | Type | Notes |
+|---|---|---|
+| `mycobot/angles_goal` | `MycobotSetAngles` | degrees, `speed` 1-100 |
+| `mycobot/coords_goal` | `MycobotSetCoords` | flange pose in `g_base`, mm / deg (`R = Rz·Ry·Rx`), IK with pinocchio |
+| `mycobot/gripper_status` | `MycobotGripperStatus` | `true` open, `false` close |
+| `mycobot/angles_real`, `mycobot/coords_real` | `MycobotAngles`, `MycobotCoords` | current state, 10 Hz |
+| `cmd_vel` | `geometry_msgs/Twist` | forwarded (stamped) to `diff_drive_base_controller/cmd_vel` |
+
+Examples:
+```shell
+ros2 topic pub --once /robot_0/mycobot/angles_goal mycobot_interfaces/msg/MycobotSetAngles \
+  "{joint_1: 0.0, joint_2: 45.0, joint_3: -30.0, joint_4: 45.0, joint_5: 0.0, joint_6: 0.0, speed: 30}"
+ros2 topic pub --once /robot_0/mycobot/coords_goal mycobot_interfaces/msg/MycobotSetCoords \
+  "{x: 150.0, y: -60.0, z: 200.0, rx: -180.0, ry: 0.0, rz: -90.0, speed: 30, model: 0}"
+ros2 topic pub --once /robot_0/mycobot/gripper_status mycobot_interfaces/msg/MycobotGripperStatus "{status: false}"
+```
+
+Gripper angles are parameters of `mycobot_sim_bridge` (`gripper_open` 0.15 rad, `gripper_closed` -0.5 rad, `gripper_time`). Commands are clamped to [-0.5, 0.15]: past -0.5 the linkage joints reach their own limits and the fingers fold into each other. Tune at runtime with
+```shell
+ros2 param set /robot_0/mycobot_sim_bridge gripper_closed -0.4
+```
+
+Arm keyboard teleoperation (in an `xterm`, like the base teleop):
+```shell
+ros2 launch limo_simulation arm_teleop.launch.py robot:=robot_0
+```
+Keys `q w e r t y` / `a s d f g h` jog joints 1-6 +/-, `o`/`c` open/close the gripper, `z` goes home, `+`/`-` change the step (default 5°).
+
 
 ## Author
 

@@ -1,0 +1,92 @@
+# LIMO + myCobot 280 (with_arm:=true). Same base setup as diff_drive_controller.yaml
+/**/controller_manager:
+  ros__parameters:
+    update_rate: 200  # Hz
+    use_sim_time: true
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    diff_drive_base_controller:
+      type: diff_drive_controller/DiffDriveController
+
+    arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+    gripper_group_controller:
+      type: position_controllers/JointGroupPositionController
+
+/**/diff_drive_base_controller:
+  ros__parameters:
+    # Wheel setup (must match the URDF: track 0.172, wheel radius 0.045)
+    left_wheel_names: ["front_left_wheel", "rear_left_wheel"]
+    right_wheel_names: ["front_right_wheel", "rear_right_wheel"]
+    wheels_per_side: 2
+    wheel_separation: 0.172
+    wheel_radius: 0.045
+    # Skid steering turns slower than a differential drive with the same track:
+    # calibrate with a spin test (commanded vs real yaw) to make wheel odometry less wrong
+    wheel_separation_multiplier: 1.0
+
+    # Odometry and frames: the controller prefixes them with its namespace
+    # (tf_frame_prefix_enable), e.g. robot_0/odom -> robot_0/base_footprint.
+    # Wheel odometry drifts on a skid-steer robot, so it is only published on ~/odom:
+    # the odom -> base_footprint tf comes from Gazebo ground truth (OdometryPublisher)
+    odom_frame_id: "odom"
+    base_frame_id: "base_footprint"
+    enable_odom_tf: false
+    open_loop: false
+    position_feedback: true
+    publish_rate: 50.0
+
+    # Commands: TwistStamped on ~/cmd_vel (/<robot_name>/diff_drive_base_controller/cmd_vel)
+    use_stamped_vel: true
+    cmd_vel_timeout: 0.5
+
+    pose_covariance_diagonal: [0.001, 0.001, 1000000.0, 1000000.0, 1000000.0, 0.01]
+    twist_covariance_diagonal: [0.001, 0.001, 1000000.0, 1000000.0, 1000000.0, 0.01]
+
+    # Velocity / acceleration limits (AgileX LIMO: ~1 m/s)
+    linear.x.has_velocity_limits: true
+    linear.x.max_velocity: 1.0
+    linear.x.min_velocity: -1.0
+    linear.x.has_acceleration_limits: true
+    linear.x.max_acceleration: 2.0
+    linear.x.min_acceleration: -2.0
+    angular.z.has_velocity_limits: true
+    angular.z.max_velocity: 3.0
+    angular.z.min_velocity: -3.0
+    angular.z.has_acceleration_limits: true
+    angular.z.max_acceleration: 6.0
+    angular.z.min_acceleration: -6.0
+
+/**/arm_controller:
+  ros__parameters:
+    # Same joint names as the real myCobot 280 (mycobot_ros2)
+    joints:
+      - joint2_to_joint1
+      - joint3_to_joint2
+      - joint4_to_joint3
+      - joint5_to_joint4
+      - joint6_to_joint5
+      - joint6output_to_joint6
+    command_interfaces: [position]
+    state_interfaces: [position, velocity]
+    allow_partial_joints_goal: false
+    open_loop_control: true
+    constraints:
+      stopped_velocity_tolerance: 0.0
+      goal_time: 0.0
+
+# Adaptive gripper (controller name must differ from the 'gripper_controller' joint): the driver joint plus the 5 linkage joints (former <mimic> joints).
+# Command order = joints order; mycobot_sim_bridge.py applies the mimic multipliers
+# [1, 1, -1, -1, -1, 1] to the driver angle (-0.74 closed ... 0.15 open).
+/**/gripper_group_controller:
+  ros__parameters:
+    joints:
+      - gripper_controller
+      - gripper_base_to_gripper_left2
+      - gripper_left3_to_gripper_left1
+      - gripper_base_to_gripper_right3
+      - gripper_base_to_gripper_right2
+      - gripper_right3_to_gripper_right1

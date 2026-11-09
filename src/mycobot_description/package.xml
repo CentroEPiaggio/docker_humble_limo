@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mycobot_description</name>
+  <version>0.0.0</version>
+  <description>myCobot 280 M5 + adaptive gripper description for Gazebo Fortress (meshes from elephantrobotics/mycobot_ros2)</description>
+  <maintainer email="fede.iada96@gmail.com">fede</maintainer>
+  <license>BSD</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>xacro</exec_depend>
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

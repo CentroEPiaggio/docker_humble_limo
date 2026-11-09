@@ -3,6 +3,8 @@
 <robot name="limo_four_diff" xmlns:xacro="http://ros.org/wiki/xacro">
   <xacro:arg name="robot_name" default="limo_four_diff"/>
   <xacro:arg name="namespace" default=""/>
+  <!-- with_arm:=true mounts the myCobot 280 + adaptive gripper as on the real robot -->
+  <xacro:arg name="with_arm" default="false"/>
 
   <xacro:include filename="$(find limo_simulation)/model/limo_xacro.xacro" />
   <xacro:include filename="$(find limo_simulation)/model/limo_four_diff.gazebo" ns='$(arg namespace)'/> 
@@ -93,6 +95,17 @@
     </xacro:limo_wheel>
   
 
+    <!-- myCobot 280 mounted on base_link, same pose as the real robot
+         (limo_mycobot_sk limo_description/urdf/limo_mycobot.xacro) -->
+    <xacro:if value="$(arg with_arm)">
+      <xacro:include filename="$(find mycobot_description)/urdf/mycobot_280_adaptive_gripper.xacro"/>
+      <xacro:mycobot_280_adaptive_gripper prefix="$(arg robot_name)/"/>
+      <joint name="limo_mycobot" type="fixed">
+        <parent link="$(arg robot_name)/base_link"/>
+        <child link="$(arg robot_name)/g_base"/>
+        <origin xyz="0.0 0.0 0.0" rpy="0 0 1.5708"/>
+      </joint>
+    </xacro:if>
 
 <gazebo reference="$(arg robot_name)/laser_link">
     <sensor name="laser" type="gpu_lidar">

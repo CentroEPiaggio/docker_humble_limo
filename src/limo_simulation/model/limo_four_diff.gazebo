@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <robot name="limo_four_diff" xmlns:xacro="http://ros.org/wiki/xacro">
     <xacro:arg name="namespace" default=""/>
+    <xacro:arg name="with_arm" default="false"/>
     <xacro:arg name="controller_config" default="$(find limo_simulation)/config/diff_drive_controller.yaml"/>
     <xacro:include filename="$(find limo_simulation)/model/limo_gazebo.gazebo" />
 
@@ -43,6 +44,69 @@
             <state_interface name="velocity"/>
             <state_interface name="position"/>
         </joint>
+        <!-- myCobot arm + gripper joints: position commands (one ros2_control block per model) -->
+        <xacro:if value="$(arg with_arm)">
+            <joint name="joint2_to_joint1">
+                <command_interface name="position"/>
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="joint3_to_joint2">
+                <command_interface name="position"/>
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="joint4_to_joint3">
+                <command_interface name="position"/>
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="joint5_to_joint4">
+                <command_interface name="position"/>
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="joint6_to_joint5">
+                <command_interface name="position"/>
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="joint6output_to_joint6">
+                <command_interface name="position"/>
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="gripper_controller">
+                <command_interface name="position"/>
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="gripper_base_to_gripper_left2">
+                <command_interface name="position"/>
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="gripper_left3_to_gripper_left1">
+                <command_interface name="position"/>
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="gripper_base_to_gripper_right3">
+                <command_interface name="position"/>
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="gripper_base_to_gripper_right2">
+                <command_interface name="position"/>
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity"/>
+            </joint>
+            <joint name="gripper_right3_to_gripper_right1">
+                <command_interface name="position"/>
+                <state_interface name="position"><param name="initial_value">0.0</param></state_interface>
+                <state_interface name="velocity"/>
+            </joint>
+        </xacro:if>
     </ros2_control>
     <gazebo reference="$(arg robot_name)/base_link">
         <material>Gazebo/Grey</material>
